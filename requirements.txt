@@ -1,0 +1,23 @@
+# Object Detection in Box - Required Dependencies
+# Python version: 3.8 or higher recommended
+
+# Core Computer Vision and Image Processing
+opencv-python>=4.8.0          # OpenCV for image processing and visualization
+numpy>=1.24.0                 # Numerical computing library
+
+# YOLO Object Detection
+ultralytics>=8.0.0            # YOLOv8 framework for object detection
+
+# Optional but recommended for production
+# Uncomment if needed:
+
+# pillow>=10.0.0              # Additional image processing capabilities
+# scipy>=1.10.0               # Scientific computing (for advanced image operations)
+# matplotlib>=3.7.0           # Plotting and visualization (for debugging)
+
+# Camera Support (if using IDS camera as indicated by your ueye.py)
+# ids-peak                    # IDS camera SDK (already in your Pipfile)
+
+# Additional utilities
+# tqdm>=4.65.0                # Progress bars (useful for batch processing)
+# pyyaml>=6.0                 # YAML configuration files support

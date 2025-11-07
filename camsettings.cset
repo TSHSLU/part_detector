@@ -1,0 +1,59 @@
+# {05D8C294-F295-4dfb-9D01-096BD04049F4}
+# GenApi persistence file (version 3.4.1)
+# Device = IDS_Imaging_Development_Systems_GmbH::U3_34Ex_C --  -- Device version = 3.34.0 -- Product GUID = d85fc10d-f4f0-25e2-b6bc-2c170e963c1b -- Product version GUID = 629dfd2b-ef93-7a68-155b-57c2b3867649
+AcquisitionMode	Continuous
+AcquisitionFrameCount	1
+SensorFrameTimeClocksTarget	1856250
+AcquisitionFrameRateTargetEnable	0
+TriggerMode	{TriggerSelector=ReadOutStart}	Off
+TriggerSelector	ReadOutStart
+TriggerSource	{TriggerSelector=ReadOutStart}	Software
+TriggerSelector	ReadOutStart
+TriggerActivation	{TriggerSelector=ReadOutStart}	RisingEdge
+TriggerSelector	ReadOutStart
+TriggerDelay	{TriggerSelector=ReadOutStart}	0
+TriggerSelector	ReadOutStart
+TriggerDivider	{TriggerSelector=ReadOutStart}	1
+TriggerSelector	ReadOutStart
+SensorExposureTimeClocks	1668420
+SensorFrameTimeClocks	1757700
+SensorOperationModeRaw	Default
+DeviceLinkThroughputLimit	162000000
+EventNotification	{EventSelector=Error}	Off
+EventNotification	{EventSelector=CriticalError}	On
+EventNotification	{EventSelector=EventDropped}	On
+EventSelector	EventDropped
+LEDTriggerSource	{LEDSelector=LEDStatus}	CameraStatus
+LEDSelector	LEDStatus
+LineMode	{LineSelector=Line2}	Input
+LineMode	{LineSelector=Line3}	Input
+LineSelector	Line0
+LineInverter	{LineSelector=Line2}	0
+LineInverter	{LineSelector=Line3}	0
+LineSelector	Line0
+UserOutputValue	{UserOutputSelector=UserOutput0}	0
+UserOutputValue	{UserOutputSelector=UserOutput1}	0
+UserOutputValue	{UserOutputSelector=UserOutput2}	0
+UserOutputValue	{UserOutputSelector=UserOutput3}	0
+UserOutputSelector	UserOutput0
+LineSource	{LineSelector=Line2}	Off
+LineSource	{LineSelector=Line3}	Off
+LineSelector	Line0
+SensorPixelSize	Bpp12
+Width	2688
+Height	1520
+OffsetX	8
+OffsetY	8
+BinningHorizontal	{BinningSelector=Sensor}	1
+BinningSelector	Sensor
+BinningVertical	{BinningSelector=Sensor}	1
+BinningSelector	Sensor
+TestPattern	Off
+PixelFormat	{ComponentSelector=Intensity}	BayerRG12g24IDS
+ComponentSelector	Intensity
+ReverseX	0
+ReverseY	0
+Gain	{GainSelector=AnalogAll}	10.6208
+GainSelector	AnalogAll
+BlackLevelInt	0
+BlackLevelAuto	ContinuousWithOffset
