@@ -15,7 +15,7 @@ class BoxInspectionSystem:
     Main system that orchestrates camera capture, box detection, and object verification.
     """
     
-    def __init__(self, yolo_model_path='yolov8n.pt', expected_objects=None):
+    def __init__(self, yolo_model_path='yolov11s.pt', expected_objects=None):
         """
         Initialize the box inspection system.
         

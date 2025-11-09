@@ -4,11 +4,11 @@ verify_ssl = true
 name = "pypi"
 
 [packages]
-ultralytics = "*"
-opencv-python = "*"
-numpy = "*"
 pygame = "*"
 ids-peak = "*"
+opencv-python = ">=4.8.0"
+numpy = ">=1.24.0"
+ultralytics = ">=8.0.0"
 
 [dev-packages]
 

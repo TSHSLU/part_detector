@@ -1,5 +1,5 @@
 """
-Object Detection Module
+Object Detection Module 
 Handles YOLO-based object detection and verification of expected objects in the box.
 """
 

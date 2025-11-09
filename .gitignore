@@ -1,0 +1,29 @@
+# Python project (.gitignore - project-only)
+
+
+
+#folders to ignore
+__pychecker__/
+.vscode/
+# ignore trainer/datasetvN directories (N = any number)
+trainer/datasetv[0-9]*/
+
+
+
+#specific files
+launch.json
+ueye.py
+__pycache__/box_detector.cpython-313.pyc
+__pycache__/object_detector.cpython-313.pyc
+__pycache__/camera_capture.cpython-313.pyc
+
+
+# files to ignore based on file extensions
+*.jpg
+*.jpg
+*.jpeg
+*.png
+*.gif
+*.bmp
+*.svg
+*.ico
