@@ -7,7 +7,7 @@ __pychecker__/
 .vscode/
 # ignore trainer/datasetvN directories (N = any number)
 trainer/datasetv[0-9]*/
-
+trainer/
 
 
 #specific files
