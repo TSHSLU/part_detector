@@ -27,3 +27,4 @@ __pycache__/camera_capture.cpython-313.pyc
 *.bmp
 *.svg
 *.ico
+*.lock
