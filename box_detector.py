@@ -138,7 +138,7 @@ class BoxDetector:
         """
         # Get box vertices
         box_points = cv2.boxPoints(box_rect)
-        box_points = np.int0(box_points)
+        box_points = np.int32(box_points)
         
         # Get bounding rectangle
         x, y, w, h = cv2.boundingRect(box_points)
@@ -229,7 +229,7 @@ class BoxDetector:
             vis_image = image.copy()
             # Draw the detected box
             box_points = cv2.boxPoints(box_rect)
-            box_points = np.int0(box_points)
+            box_points = np.int32(box_points)
             cv2.drawContours(vis_image, [box_points], 0, (0, 255, 0), 3)
             # Add text
             cv2.putText(vis_image, f"Box detected (angle: {angle:.1f}°)",

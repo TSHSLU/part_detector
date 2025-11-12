@@ -31,7 +31,9 @@ class BoxInspectionSystem:
         self.box_detector = BoxDetector(min_box_area=50000)
         self.object_detector = ObjectDetector(
             model_path=yolo_model_path,
-            confidence_threshold=0.5
+            confidence_threshold=0.7,  # Increased threshold to reduce false positives
+            iou_threshold=0.45,  # NMS threshold for eliminating duplicate detections
+            min_box_area=500  # Minimum detection area to filter tiny false positives
         )
         
         # Configuration
@@ -217,6 +219,10 @@ class BoxInspectionSystem:
         self.is_running = True
         print("\nStarting continuous scanning...")
         print("Press 'q' to quit\n")
+        
+        # Create resizable window if display is enabled
+        if display_window:
+            cv2.namedWindow('Box Inspection System', cv2.WINDOW_NORMAL)
         
         try:
             while self.is_running:

@@ -13,16 +13,20 @@ class ObjectDetector:
     Detects objects in images using YOLO and verifies if all expected objects are present.
     """
     
-    def __init__(self, model_path='yolov8n.pt', confidence_threshold=0.5):
+    def __init__(self, model_path='yolov8n.pt', confidence_threshold=0.5, iou_threshold=0.45, min_box_area=100):
         """
         Initialize the YOLO object detector.
         
         Args:
             model_path (str): Path to YOLO model file (e.g., 'yolov8n.pt', 'yolov8s.pt', or custom model)
             confidence_threshold (float): Minimum confidence score for detections (0.0 to 1.0)
+            iou_threshold (float): IoU threshold for NMS (Non-Maximum Suppression) to eliminate duplicate detections
+            min_box_area (int): Minimum bounding box area in pixels to filter out tiny false positives
         """
         self.model_path = model_path
         self.confidence_threshold = confidence_threshold
+        self.iou_threshold = iou_threshold
+        self.min_box_area = min_box_area
         self.model = None
         self.class_names = []
         
@@ -59,8 +63,8 @@ class ObjectDetector:
             print("ERROR: Model not loaded")
             return []
         
-        # Run inference
-        results = self.model(image, conf=self.confidence_threshold, verbose=verbose)
+        # Run inference with IoU threshold for NMS
+        results = self.model(image, conf=self.confidence_threshold, iou=self.iou_threshold, verbose=verbose)
         
         # Parse results
         detections = []
@@ -73,11 +77,21 @@ class ObjectDetector:
                 class_id = int(box.cls[0].cpu().numpy())  # Class ID
                 class_name = self.class_names[class_id]  # Class name
                 
+                # Calculate bounding box area
+                box_area = (x2 - x1) * (y2 - y1)
+                
+                # Filter out tiny detections (likely false positives)
+                if box_area < self.min_box_area:
+                    if verbose:
+                        print(f"Filtered out tiny detection: {class_name} (area: {box_area:.0f} < {self.min_box_area})")
+                    continue
+                
                 detection = {
                     'class_id': class_id,
                     'class_name': class_name,
                     'confidence': confidence,
-                    'bbox': (int(x1), int(y1), int(x2), int(y2))
+                    'bbox': (int(x1), int(y1), int(x2), int(y2)),
+                    'area': int(box_area)
                 }
                 detections.append(detection)
                 
