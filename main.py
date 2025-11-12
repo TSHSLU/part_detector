@@ -9,7 +9,7 @@ from camera_capture import CameraCapture
 from box_detector import BoxDetector
 from object_detector import ObjectDetector
 from pathlib import Path
-
+import tkinter as tk
 
 class BoxInspectionSystem:
     """
@@ -282,14 +282,20 @@ def main():
     Main entry point for the application.
     """
     # Configuration
-    YOLO_MODEL = 'yolov8n.pt'  # Can use 'yolov8s.pt', 'yolov8m.pt', or custom trained model
+    model_dir= Path(__file__).parent/'models'
+    YOLO_MODEL = model_dir / 'firstmodelv1.pt'  # Can use 'yolov8s.pt', 'yolov8m.pt', or custom trained model
     
     # Define expected objects in the box
     # Modify this dictionary based on your specific use case
     EXPECTED_OBJECTS = {
-        'bottle': 2,    # Expect 2 bottles
-        'cup': 1,       # Expect 1 cup
-        # Add more objects as needed
+     'filters':1,
+     'milkjug':1,
+     'stamp':1,
+     'tool':1,
+     'tray':1,
+     'watercontainer':1,
+     'wood':1
+    
     }
     
     # Create and run the inspection system

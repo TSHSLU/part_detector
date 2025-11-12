@@ -1,0 +1,392 @@
+# System Architecture Diagram
+
+```
+╔═══════════════════════════════════════════════════════════════════════════╗
+║                      BOX INSPECTION SYSTEM ARCHITECTURE                    ║
+╚═══════════════════════════════════════════════════════════════════════════╝
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                           MAIN.PY - BoxInspectionSystem                     │
+│                                                                             │
+│  ┌─────────────────┐                                                        │
+│  │  Configuration  │                                                        │
+│  │  - YOLO model   │                                                        │
+│  │  - Expected obj │                                                        │
+│  │  - Thresholds   │                                                        │
+│  └────────┬────────┘                                                        │
+│           │                                                                 │
+│           ▼                                                                 │
+│  ┌──────────────────────────────────────────────────────────────┐          │
+│  │                      State Machine                           │          │
+│  │  ┌────────────┐   ┌────────────┐   ┌────────────┐           │          │
+│  │  │  NO BOX    │──▶│ BOX FOUND  │──▶│  COMPLETE  │           │          │
+│  │  └────────────┘   └────────────┘   └────────────┘           │          │
+│  │       ▲                │                  │                  │          │
+│  │       └────────────────┴──────────────────┘                  │          │
+│  │         (consecutive_complete_detections counter)            │          │
+│  └──────────────────────────────────────────────────────────────┘          │
+│           │                                                                 │
+│           ▼                                                                 │
+│  ┌──────────────────────────────────────────────────────────────┐          │
+│  │                    Processing Loop                           │          │
+│  │                                                               │          │
+│  │  1. capture_frame()                                          │          │
+│  │  2. process_frame() (box detection)                          │          │
+│  │  3. detect_objects() (YOLO)                                  │          │
+│  │  4. check_expected_objects()                                 │          │
+│  │  5. update state                                             │          │
+│  │  6. trigger callbacks                                        │          │
+│  └──────────────────────────────────────────────────────────────┘          │
+└─────────────────────────────────────────────────────────────────────────────┘
+         │                    │                    │
+         ▼                    ▼                    ▼
+┌─────────────────┐  ┌─────────────────┐  ┌─────────────────┐
+│ camera_capture  │  │  box_detector   │  │ object_detector │
+└─────────────────┘  └─────────────────┘  └─────────────────┘
+
+
+═══════════════════════════════════════════════════════════════════════════════
+                              DATA FLOW DIAGRAM
+═══════════════════════════════════════════════════════════════════════════════
+
+┌──────────────────┐
+│   CAMERA INPUT   │
+│  (1920x1080 BGR) │
+└────────┬─────────┘
+         │
+         ▼
+┌─────────────────────────────────────────────────────────────┐
+│                    CAMERA CAPTURE MODULE                    │
+│                                                             │
+│  ┌──────────────┐                  ┌──────────────┐        │
+│  │  IDS uEye?   │──YES──▶         │  OpenCV Cam  │        │
+│  │  Available?  │                  │  (Fallback)  │        │
+│  └──────┬───────┘                  └──────────────┘        │
+│         │                                                   │
+│         ▼                                                   │
+│  ┌──────────────────────────────────────────────┐          │
+│  │  ids_peak.Library.Initialize()               │          │
+│  │  device.OpenDevice()                         │          │
+│  │  data_stream.StartAcquisition()              │          │
+│  │  WaitForFinishedBuffer()                     │          │
+│  │  BufferToImage() → RGB8 → BGR                │          │
+│  └──────────────────────────────────────────────┘          │
+│                                                             │
+│  Output: BGR numpy array (H, W, 3)                         │
+└─────────────────────────┬───────────────────────────────────┘
+                          │
+                          ▼
+┌─────────────────────────────────────────────────────────────┐
+│                    BOX DETECTOR MODULE                      │
+│                                                             │
+│  Step 1: Color Segmentation (HSV)                          │
+│  ┌─────────────────────────────────────────────┐           │
+│  │  RGB → HSV                                  │           │
+│  │  cv2.inRange(lower=[0,0,0], upper=[180,255,80])        │
+│  │  → Binary mask (box = white)                │           │
+│  └─────────────────────────────────────────────┘           │
+│           │                                                 │
+│           ▼                                                 │
+│  Step 2: Morphological Cleanup                             │
+│  ┌─────────────────────────────────────────────┐           │
+│  │  morphologyEx(CLOSE) - fill holes           │           │
+│  │  morphologyEx(OPEN) - remove noise          │           │
+│  └─────────────────────────────────────────────┘           │
+│           │                                                 │
+│           ▼                                                 │
+│  Step 3: Contour Detection                                 │
+│  ┌─────────────────────────────────────────────┐           │
+│  │  findContours(EXTERNAL)                     │           │
+│  │  largest_contour = max(contours)            │           │
+│  │  if area < min_box_area: FAIL               │           │
+│  └─────────────────────────────────────────────┘           │
+│           │                                                 │
+│           ▼                                                 │
+│  Step 4: Rotation Correction                               │
+│  ┌─────────────────────────────────────────────┐           │
+│  │  box_rect = minAreaRect(contour)            │           │
+│  │  angle = calculate_rotation_angle()         │           │
+│  │  rotated_image = rotate_image(angle)        │           │
+│  └─────────────────────────────────────────────┘           │
+│           │                                                 │
+│           ▼                                                 │
+│  Step 5: Crop Box Region                                   │
+│  ┌─────────────────────────────────────────────┐           │
+│  │  crop_box_region(padding=20px)              │           │
+│  │  resize to 640x640 (YOLO input size)        │           │
+│  └─────────────────────────────────────────────┘           │
+│                                                             │
+│  Output: 640x640 BGR aligned box image                     │
+└─────────────────────────┬───────────────────────────────────┘
+                          │
+                          ▼
+┌─────────────────────────────────────────────────────────────┐
+│                   OBJECT DETECTOR MODULE                    │
+│                                                             │
+│  Step 1: YOLO Inference                                    │
+│  ┌─────────────────────────────────────────────┐           │
+│  │  model = YOLO('firstmodelv1.pt')            │           │
+│  │  results = model(image, conf=0.5)           │           │
+│  │  → Raw detections with bboxes               │           │
+│  └─────────────────────────────────────────────┘           │
+│           │                                                 │
+│           ▼                                                 │
+│  Step 2: Parse Results                                     │
+│  ┌─────────────────────────────────────────────┐           │
+│  │  for box in results.boxes:                  │           │
+│  │    class_id = box.cls                       │           │
+│  │    class_name = model.names[class_id]       │           │
+│  │    confidence = box.conf                    │           │
+│  │    bbox = box.xyxy (x1,y1,x2,y2)            │           │
+│  └─────────────────────────────────────────────┘           │
+│           │                                                 │
+│           ▼                                                 │
+│  Step 3: Count Objects                                     │
+│  ┌─────────────────────────────────────────────┐           │
+│  │  detected_counts = {                        │           │
+│  │    'filters': 1,                            │           │
+│  │    'milkjug': 1,                            │           │
+│  │    'stamp': 0,  ← MISSING!                  │           │
+│  │    ...                                      │           │
+│  │  }                                          │           │
+│  └─────────────────────────────────────────────┘           │
+│           │                                                 │
+│           ▼                                                 │
+│  Step 4: Verification                                      │
+│  ┌─────────────────────────────────────────────┐           │
+│  │  check_expected_objects(                    │           │
+│  │    detections,                              │           │
+│  │    expected={'filters':1, 'milkjug':1,...}, │           │
+│  │    mode='minimum'                           │           │
+│  │  )                                          │           │
+│  │  → is_complete, missing, extra              │           │
+│  └─────────────────────────────────────────────┘           │
+│                                                             │
+│  Output: List[{class_name, confidence, bbox}]              │
+│          + Verification results                            │
+└─────────────────────────┬───────────────────────────────────┘
+                          │
+                          ▼
+┌─────────────────────────────────────────────────────────────┐
+│                    VISUALIZATION & OUTPUT                   │
+│                                                             │
+│  ┌─────────────────────────────────────────────┐           │
+│  │  Draw bounding boxes on image               │           │
+│  │  Add class labels + confidence scores       │           │
+│  │  Add status text (COMPLETE/INCOMPLETE)      │           │
+│  │  Show object counts                         │           │
+│  └─────────────────────────────────────────────┘           │
+│           │                                                 │
+│           ▼                                                 │
+│  ┌─────────────────────────────────────────────┐           │
+│  │  cv2.imshow('Box Inspection System', vis)   │           │
+│  │  if is_complete and consecutive >= 3:       │           │
+│  │    trigger_callback()                       │           │
+│  └─────────────────────────────────────────────┘           │
+└─────────────────────────────────────────────────────────────┘
+
+
+═══════════════════════════════════════════════════════════════════════════════
+                         MODULE DEPENDENCY GRAPH
+═══════════════════════════════════════════════════════════════════════════════
+
+┌──────────────┐
+│   main.py    │  ← Entry point
+└──────┬───────┘
+       │
+       ├─────────────────┬─────────────────┬─────────────────┐
+       │                 │                 │                 │
+       ▼                 ▼                 ▼                 ▼
+┌──────────────┐  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐
+│camera_capture│  │box_detector  │  │object_detector│ │    cv2       │
+└──────┬───────┘  └──────┬───────┘  └──────┬───────┘  └──────────────┘
+       │                 │                 │
+       ├────────┬────────┤                 │
+       │        │        │                 │
+       ▼        ▼        ▼                 ▼
+┌──────────┐ ┌─────┐ ┌─────┐        ┌──────────┐
+│ids_peak  │ │numpy│ │ cv2 │        │ultralytics│
+│(optional)│ └─────┘ └─────┘        │  (YOLO)  │
+└──────────┘                         └──────────┘
+
+
+═══════════════════════════════════════════════════════════════════════════════
+                            TIMING DIAGRAM (20 FPS)
+═══════════════════════════════════════════════════════════════════════════════
+
+Time (ms)  0      10     20     30     40     50     60     70     80    100
+           │      │      │      │      │      │      │      │      │      │
+Camera     ████                                                           
+           │ Capture frame (5-30ms)                                      
+           │                                                              
+Box Det    │      ████████                                                
+           │      │ HSV+Morph+Contour+Rotate+Crop (20-50ms)              
+           │      │                                                       
+YOLO       │      │              ███████████████                          
+           │      │              │ Inference (50-100ms, depends on model) 
+           │      │              │                                        
+Verify     │      │              │                     ██                 
+           │      │              │                     │ Count+Check (5ms)
+           │      │              │                     │                  
+Visualize  │      │              │                     │     ████         
+           │      │              │                     │     │ Draw (10-20ms)
+           │      │              │                     │     │            
+Display    │      │              │                     │     │    ████    
+           │      │              │                     │     │    │ Show  
+           │      │              │                     │     │    │       
+Sleep      │      │              │                     │     │    │   ████
+           │      │              │                     │     │    │   │50ms
+           ▼      ▼              ▼                     ▼     ▼    ▼   ▼
+           └──────────────────────────────────────────────────────────────▶
+                          TOTAL: ~150-200ms per frame
+                          → 20 FPS maximum (with sleep)
+
+
+═══════════════════════════════════════════════════════════════════════════════
+                          STATE MACHINE DIAGRAM
+═══════════════════════════════════════════════════════════════════════════════
+
+                          ┌────────────────┐
+                     ┌───▶│   NO CAMERA    │
+                     │    └────────────────┘
+                     │            │
+                     │            │ initialize()
+                     │            ▼
+                     │    ┌────────────────┐
+                ┌────┴───▶│  INITIALIZED   │
+                │         └────────────────┘
+                │                 │
+                │                 │ run()
+                │                 ▼
+                │         ┌────────────────┐
+                │    ┌───▶│   NO BOX       │◀─────┐
+                │    │    │   DETECTED     │      │
+                │    │    └────────────────┘      │
+                │    │            │               │
+                │    │            │ box found     │ box lost
+                │    │            ▼               │
+                │    │    ┌────────────────┐      │
+                │    │    │  BOX DETECTED  │──────┘
+                │    │    │  (incomplete)  │
+                │    │    └────────────────┘
+                │    │            │
+                │    │            │ all objects found
+                │    │            ▼
+                │    │    ┌────────────────┐
+                │    │    │   COUNTING     │
+                │    │    │  (consecutive  │
+                │    │    │   detections)  │
+                │    │    └────────────────┘
+                │    │      │           │
+                │    │      │ count=3   │ object missing
+                │    │      ▼           └────────┐
+                │    │    ┌────────────────┐     │
+                │    │    │   COMPLETE     │     │
+                │    │    │  (callback     │     │
+                │    │    │   triggered)   │     │
+                │    │    └────────────────┘     │
+                │    │            │               │
+                │    └────────────┴───────────────┘
+                │              │
+                │              │ release()
+                │              ▼
+                └───────┌────────────────┐
+                        │   CLEANUP      │
+                        └────────────────┘
+
+
+═══════════════════════════════════════════════════════════════════════════════
+                      KEY CONFIGURATION PARAMETERS
+═══════════════════════════════════════════════════════════════════════════════
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│ PARAMETER                           DEFAULT        EFFECT                   │
+├─────────────────────────────────────────────────────────────────────────────┤
+│ Camera                                                                       │
+│   camera_id                         0              Which camera to use      │
+│                                                                              │
+│ Box Detection                                                                │
+│   box_color_lower                   [0, 0, 0]      HSV lower bound          │
+│   box_color_upper                   [180,255,80]   HSV upper bound          │
+│   min_box_area                      50000          Minimum pixels for box   │
+│                                                                              │
+│ YOLO                                                                         │
+│   model_path                        firstmodelv1   Which model to use       │
+│   confidence_threshold              0.5            Min detection confidence │
+│                                                                              │
+│ Verification                                                                 │
+│   verification_mode                 'minimum'      exact/minimum/any        │
+│   expected_objects                  {...}          Dict of object:count     │
+│                                                                              │
+│ State Machine                                                                │
+│   required_consecutive_detections   3              Stability threshold      │
+│   check_interval                    0.5            Seconds between checks   │
+│                                                                              │
+│ Performance                                                                  │
+│   time.sleep(0.05)                  50ms           Frame rate limiter       │
+│                                                                              │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+
+═══════════════════════════════════════════════════════════════════════════════
+                           TESTING WORKFLOW
+═══════════════════════════════════════════════════════════════════════════════
+
+    START
+      │
+      ▼
+┌─────────────────┐
+│ test_camera.py  │ ─── Tests camera capture
+└────────┬────────┘     ✓ Can capture frames?
+         │              ✓ Frame rate OK?
+         │ PASS         ✓ IDS or OpenCV?
+         ▼
+┌─────────────────┐
+│calibrate_box    │ ─── Find HSV values
+│_colors.py       │     ✓ Box appears white in mask?
+└────────┬────────┘     → Copy values to box_detector.py
+         │ CALIBRATED
+         ▼
+┌─────────────────┐
+│test_box_        │ ─── Tests box detection
+│detection.py     │     ✓ Box detected consistently?
+└────────┬────────┘     ✓ Rotation corrected?
+         │ PASS         ✓ Crop looks good?
+         ▼
+┌─────────────────┐
+│ test_yolo.py    │ ─── Tests object detection
+└────────┬────────┘     ✓ Objects detected?
+         │ PASS         ✓ Correct classes?
+         ▼              ✓ Confidence reasonable?
+┌─────────────────┐
+│   main.py       │ ─── Run full system
+└─────────────────┘     ✓ Complete pipeline works?
+                        ✓ "COMPLETE" triggers?
+
+
+═══════════════════════════════════════════════════════════════════════════════
+                         TROUBLESHOOTING FLOWCHART
+═══════════════════════════════════════════════════════════════════════════════
+
+                    ┌─────────────────┐
+                    │  Problem?       │
+                    └────────┬────────┘
+                             │
+              ┌──────────────┼──────────────┐
+              │              │              │
+              ▼              ▼              ▼
+     ┌────────────┐  ┌────────────┐  ┌────────────┐
+     │ No camera  │  │  No box    │  │ No objects │
+     │ available  │  │  detected  │  │  detected  │
+     └──────┬─────┘  └──────┬─────┘  └──────┬─────┘
+            │               │                │
+            ▼               ▼                ▼
+   ┌─────────────┐  ┌─────────────┐  ┌─────────────┐
+   │ Check:      │  │ Run:        │  │ Check:      │
+   │ - Connected?│  │ calibrate_  │  │ - Model     │
+   │ - camera_id?│  │ box_colors  │  │   classes   │
+   │ - USB port? │  │             │  │ - Lighting  │
+   └─────────────┘  └─────────────┘  │ - Threshold │
+                                     └─────────────┘
+
+```
