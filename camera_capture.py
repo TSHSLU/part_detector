@@ -78,6 +78,7 @@ class CameraCapture:
                     if self.remote_nodemap is not None and os.path.exists(CONFIG_FILE):
                         try:
                             self.remote_nodemap.LoadFromFile(CONFIG_FILE)
+                            print("INFO: Loaded camera settings from", CONFIG_FILE)
                         except Exception:
                             # ignore failures and continue with defaults
                             pass
@@ -105,6 +106,7 @@ class CameraCapture:
                             self.ids_buffers.append(buf)
                         except Exception:
                             # If allocation fails, continue with what we have
+                            print("WARNING: Buffer allocation failed")
                             break
 
                     for b in list(self.ids_buffers):
@@ -121,6 +123,7 @@ class CameraCapture:
                             if self.remote_nodemap is not None:
                                 self.remote_nodemap.FindNode("AcquisitionStart").Execute()
                                 self.remote_nodemap.FindNode("AcquisitionStart").WaitUntilDone()
+                                print("INFO: Camera acquisition started")
                         except Exception:
                             pass
                     except Exception:
@@ -192,8 +195,18 @@ class CameraCapture:
                 color_image = img.ConvertTo(ids_ipl.PixelFormatName_RGB8)
                 arr = color_image.get_numpy_3D()
 
-                # Ensure dtype uint8
-                arr = arr.astype(np.uint8)
+                # Apply white balance correction (removes green tint)
+                arr = arr.astype(np.float32)
+                arr[:, :, 0] *= 1  # Boost red channel
+                arr[:, :, 1] *= 1  # Boost green channel
+                arr[:, :, 2] *= 4  # Boost blue channel
+                arr = np.clip(arr, 0, 255)
+                    
+                # Apply gamma correction (brightens image naturally)
+                arr = arr / 255.0
+                arr = np.power(arr, 1/2.2)
+                arr = (arr * 255).astype(np.uint8)
+                    
 
                 # Convert RGB -> BGR for OpenCV
                 bgr = cv2.cvtColor(arr, cv2.COLOR_RGB2BGR)
