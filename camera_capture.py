@@ -194,19 +194,20 @@ class CameraCapture:
                 # Convert to RGB8 and get numpy array
                 color_image = img.ConvertTo(ids_ipl.PixelFormatName_RGB8)
                 arr = color_image.get_numpy_3D()
-
+                
                 # Apply white balance correction (removes green tint)
                 arr = arr.astype(np.float32)
                 arr[:, :, 0] *= 1  # Boost red channel
                 arr[:, :, 1] *= 1  # Boost green channel
-                arr[:, :, 2] *= 4  # Boost blue channel
+                arr[:, :, 2] *= 3  # Boost blue channel
                 arr = np.clip(arr, 0, 255)
-                    
+                arr = arr.astype(np.uint8)
+                """    
                 # Apply gamma correction (brightens image naturally)
                 arr = arr / 255.0
                 arr = np.power(arr, 1/2.2)
                 arr = (arr * 255).astype(np.uint8)
-                    
+                """   
 
                 # Convert RGB -> BGR for OpenCV
                 bgr = cv2.cvtColor(arr, cv2.COLOR_RGB2BGR)
