@@ -6,10 +6,8 @@ Continuously scans for objects in a box placed under a camera and verifies compl
 import cv2
 import time
 from camera_capture import CameraCapture
-from box_detector import BoxDetector
 from object_detector import ObjectDetector
 from pathlib import Path
-import tkinter as tk
 
 class BoxInspectionSystem:
     """
@@ -28,25 +26,24 @@ class BoxInspectionSystem:
         """
         # Initialize components
         self.camera = CameraCapture()
-        self.box_detector = BoxDetector(min_box_area=50000)
         self.object_detector = ObjectDetector(
             model_path=yolo_model_path,
             confidence_threshold=0.7,  # Increased threshold to reduce false positives
-            iou_threshold=0.45,  # NMS threshold for eliminating duplicate detections
-            min_box_area=500  # Minimum detection area to filter tiny false positives
         )
         
         # Configuration
-        self.expected_objects = expected_objects or {}
-        self.verification_mode = 'minimum'  # 'exact', 'minimum', or 'any'
+        self.expected_objects = expected_objects or {}  # new
+        self.verification_mode = 'minimum'  # 'exact', 'minimum', or 'any' # new
+        self.required_consecutive_detections = 3  # Number of consecutive complete detections to confirm box completeness
         
         # State tracking
         self.is_running = False
         self.last_check_time = 0
-        self.check_interval = 0.5  # seconds between checks
+        self.consecutive_complete_detections = 0  # Counter for consecutive complete detections # new
+
+        # is true if 3 consecutive complete detections
         self.box_complete = False
-        self.consecutive_complete_detections = 0
-        self.required_consecutive_detections = 5  # Require 3 consecutive complete detections
+        
         
     def initialize(self):
         """
@@ -83,6 +80,8 @@ class BoxInspectionSystem:
         print("=" * 60)
         return True
     
+
+
     def on_box_complete(self):
         """
         Callback function triggered when all expected objects are detected in the box.
@@ -91,19 +90,17 @@ class BoxInspectionSystem:
         print("\n" + "=" * 60)
         print("✓✓✓ BOX COMPLETE - ALL OBJECTS DETECTED ✓✓✓")
         print("=" * 60)
-        
-        # You can add custom actions here:
-        # - Trigger a signal to a PLC or robot
-        # - Save detection results to a database
-        # - Send a notification
-        # - Log the event with timestamp
-        # - Play a sound
-        # - Update a dashboard
-        
+        # Todo: raspberry pi GPIO signal green lamp on
+            # green lamp on for 30 seconds before checking again
+            # sets again to false after 30 seconds
+            #implement logic that keeps the green lamp on and does not turn it off if box is still complete
+
+
         # Example: Log with timestamp
         timestamp = time.strftime("%Y-%m-%d %H:%M:%S")
         print(f"Completion detected at: {timestamp}")
         
+
     def on_box_incomplete(self, missing_objects, extra_objects=None):
         """
         Callback function triggered when box is incomplete or has incorrect objects.
@@ -112,23 +109,23 @@ class BoxInspectionSystem:
             missing_objects (dict): Objects that are missing
             extra_objects (dict): Objects that are extra (only in 'exact' mode)
         """
-        # Optional: Add custom actions for incomplete box
-        # This is called frequently, so avoid heavy operations
         pass
     
-    def process_single_frame(self, visualize=True ):
+
+
+    def process_single_frame(self, visualize=True):  # new - completely rewritten
         """
-        Process a single frame: capture, detect box, align, detect objects, verify.
+        Process a single frame: capture, detect objects, verify completeness.
         
         Args:
-            visualize (bool): If True, return visualization images
+            visualize (bool): If True, return visualization image
             
         Returns:
             dict: Dictionary containing processing results and status
         """
+        # new - Initialize result dictionary with all required keys
         result = {
             'success': False,
-            'box_detected': False,
             'objects_detected': [],
             'is_complete': False,
             'missing_objects': {},
@@ -136,29 +133,16 @@ class BoxInspectionSystem:
             'visualization': None
         }
         
-        # Capture frame from camera
-        raw_frame = self.camera.capture_frame()
-        if raw_frame is None:
+        # new - Capture frame from camera
+        frame = self.camera.capture_frame()
+        if frame is None:
             return result
         
-        # Detect and preprocess box
-        if visualize:
-            processed_frame, vis_frame = self.box_detector.process_frame(raw_frame, visualize=True)
-        else:
-            processed_frame = self.box_detector.process_frame(raw_frame, visualize=False)
-            vis_frame = None
-        
-        if processed_frame is None:
-            result['visualization'] = vis_frame
-            return result
-        
-        result['box_detected'] = True
-        
-        # Detect objects in the processed frame
-        detections = self.object_detector.detect_objects(processed_frame, verbose=False)
+        # new - Detect objects in the frame
+        detections = self.object_detector.detect_objects(frame, verbose=False)
         result['objects_detected'] = detections
         
-        # Verify if expected objects are present
+        # new - Verify if expected objects are present
         if self.expected_objects:
             is_complete, missing, extra = self.object_detector.check_expected_objects(
                 detections, self.expected_objects, mode=self.verification_mode
@@ -167,44 +151,32 @@ class BoxInspectionSystem:
             result['missing_objects'] = missing
             result['extra_objects'] = extra
         else:
-            # If no expected objects specified, consider it "complete" if any objects detected
+            # new - If no expected objects specified, consider it "complete" if any objects detected
             result['is_complete'] = len(detections) > 0
         
-        # Create visualization with detections
-        if visualize and vis_frame is not None:
-            # Also show detected objects on the processed frame
-            processed_vis = self.object_detector.visualize_detections(processed_frame, detections)
+        # new - Create visualization if requested
+        if visualize:
+            vis_frame = self.object_detector.visualize_detections(frame, detections)
             
-            # Combine visualizations side by side
-            h1, w1 = vis_frame.shape[:2]
-            h2, w2 = processed_vis.shape[:2]
-            
-            # Resize processed frame to match height of original
-            scale = h1 / h2
-            new_w2 = int(w2 * scale)
-            processed_vis_resized = cv2.resize(processed_vis, (new_w2, h1))
-            
-            combined = cv2.hconcat([vis_frame, processed_vis_resized])
-            
-            # Add status text
+            # new - Add status text
             status_text = "COMPLETE" if result['is_complete'] else "INCOMPLETE"
             status_color = (0, 255, 0) if result['is_complete'] else (0, 0, 255)
-            cv2.putText(combined, f"Status: {status_text}", (10, 70),
+            cv2.putText(vis_frame, f"Status: {status_text}", (10, 40),
                        cv2.FONT_HERSHEY_SIMPLEX, 1, status_color, 2)
             
-            # Add detected objects count
+            # new - Add detected objects count
             obj_summary = self.object_detector.get_detection_summary(detections)
-            y_offset = 110
+            y_offset = 80
             for obj_name, count in obj_summary.items():
                 text = f"{obj_name}: {count}"
-                cv2.putText(combined, text, (10, y_offset),
+                cv2.putText(vis_frame, text, (10, y_offset),
                            cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255, 255, 255), 2)
                 y_offset += 30
             
-            result['visualization'] = combined
+            result['visualization'] = vis_frame
         
-        result['success'] = True
-        return result
+        result['success'] = True  # new
+        return result  # new
     
     def run(self, display_window=True):
         """
@@ -230,7 +202,7 @@ class BoxInspectionSystem:
                 result = self.process_single_frame(visualize=display_window)
                 
                 # Update state based on result
-                if result['success'] and result['box_detected']:
+                if result['success']:
                     if result['is_complete']:
                         self.consecutive_complete_detections += 1
                         
@@ -250,7 +222,7 @@ class BoxInspectionSystem:
                             result['extra_objects']
                         )
                 else:
-                    # No box detected - reset state
+                    # No items detected - reset state
                     self.consecutive_complete_detections = 0
                     self.box_complete = False
                 
@@ -289,10 +261,9 @@ def main():
     """
     # Configuration
     model_dir= Path(__file__).parent/'models'
-    YOLO_MODEL = model_dir / 'firstmodelv1.pt'  # Can use 'yolov8s.pt', 'yolov8m.pt', or custom trained model
+    YOLO_MODEL = model_dir / 'firstmodelv1.pt'  #insert  model here in path ./models/
     
     # Define expected objects in the box
-    # Modify this dictionary based on your specific use case
     EXPECTED_OBJECTS = {
      'filters':1,
      'milkjug':1,
@@ -310,10 +281,8 @@ def main():
         expected_objects=EXPECTED_OBJECTS
     )
     
-    # You can modify system parameters before running
-    system.verification_mode = 'minimum'  # 'exact', 'minimum', or 'any'
+    # system parameters
     system.required_consecutive_detections = 3
-    system.check_interval = 0.5
     
     # Run the system
     system.run(display_window=True)

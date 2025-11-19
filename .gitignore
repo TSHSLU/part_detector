@@ -8,7 +8,8 @@ __pychecker__/
 # ignore trainer/datasetvN directories (N = any number)
 trainer/datasetv[0-9]*/
 trainer/
-
+runs/
+results/
 
 #specific files
 launch.json
