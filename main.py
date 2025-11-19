@@ -16,7 +16,7 @@ class BoxInspectionSystem:
     Main system that orchestrates camera capture, box detection, and object verification.
     """
     
-    def __init__(self, yolo_model_path='models/yolov11s.pt', expected_objects=None):
+    def __init__(self, yolo_model_path='models/firstmodelv1.pt', expected_objects=None):
         """
         Initialize the box inspection system.
         
@@ -46,7 +46,7 @@ class BoxInspectionSystem:
         self.check_interval = 0.5  # seconds between checks
         self.box_complete = False
         self.consecutive_complete_detections = 0
-        self.required_consecutive_detections = 3  # Require 3 consecutive complete detections
+        self.required_consecutive_detections = 5  # Require 3 consecutive complete detections
         
     def initialize(self):
         """
@@ -116,7 +116,7 @@ class BoxInspectionSystem:
         # This is called frequently, so avoid heavy operations
         pass
     
-    def process_single_frame(self, visualize=True):
+    def process_single_frame(self, visualize=True ):
         """
         Process a single frame: capture, detect box, align, detect objects, verify.
         
@@ -215,7 +215,7 @@ class BoxInspectionSystem:
         """
         if not self.initialize():
             return
-        
+        # starts program
         self.is_running = True
         print("\nStarting continuous scanning...")
         print("Press 'q' to quit\n")
