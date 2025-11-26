@@ -202,12 +202,12 @@ class CameraCapture:
                 arr[:, :, 2] *= 4  # Boost blue channel
                 arr = np.clip(arr, 0, 255)
                 arr = arr.astype(np.uint8)
-                """    
+                  
                 # Apply gamma correction (brightens image naturally)
                 arr = arr / 255.0
                 arr = np.power(arr, 1/2.2)
                 arr = (arr * 255).astype(np.uint8)
-                """   
+                  
 
                 # Convert RGB -> BGR for OpenCV
                 bgr = cv2.cvtColor(arr, cv2.COLOR_RGB2BGR)
