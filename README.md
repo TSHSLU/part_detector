@@ -136,10 +136,6 @@ YOLO_MODEL = model_dir / 'yolov8n.pt'  # Nano (fastest)
 └──────┬──────┘
        ↓
 ┌─────────────┐
-│ Box Detector│ → Finds box, rotates it straight, crops it
-└──────┬──────┘
-       ↓
-┌─────────────┐
 │    YOLO     │ → Finds objects in box
 └──────┬──────┘
        ↓
@@ -225,5 +221,3 @@ Check `USAGE_GUIDE.md` for detailed troubleshooting.
 4. Adjust thresholds for your environment
 5. Run `main.py` and monitor results
 6. Add custom callbacks in `on_box_complete()` for your workflow
-
-**Good luck! The code is solid and ready to use.** 🎉
