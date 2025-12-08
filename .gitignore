@@ -7,7 +7,8 @@ __pychecker__/
 .vscode/
 # ignore trainer/datasetvN directories (N = any number)
 trainer/datasetv[0-9]*/
-trainer/
+trainer/runs/
+trainer/results/
 runs/
 results/
 
@@ -20,7 +21,6 @@ __pycache__/camera_capture.cpython-313.pyc
 
 
 # files to ignore based on file extensions
-*.jpg
 *.jpg
 *.jpeg
 *.png

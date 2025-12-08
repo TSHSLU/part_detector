@@ -8,13 +8,15 @@ import time
 from camera_capture import CameraCapture
 from object_detector import ObjectDetector
 from pathlib import Path
+import platform
+
 
 class BoxInspectionSystem:
     """
     Main system that orchestrates camera capture, box detection, and object verification.
     """
     
-    def __init__(self, yolo_model_path='models/firstmodelv1.pt', expected_objects=None):
+    def __init__(self, yolo_model_path='models/modelv2.0.pt', expected_objects=None):
         """
         Initialize the box inspection system.
         
@@ -41,6 +43,8 @@ class BoxInspectionSystem:
         self.last_check_time = 0
         self.consecutive_complete_detections = 0  # Counter for consecutive complete detections # new
 
+        self.israspi=False
+
         # is true if 3 consecutive complete detections
         self.box_complete = False
         
@@ -61,7 +65,7 @@ class BoxInspectionSystem:
         if not self.camera.initialize():
             print("ERROR: Failed to initialize camera")
             return False
-        print("   ✓ Camera initialized")
+        print("Camera initialized")
         
         # Display camera info
         cam_info = self.camera.get_camera_info()
@@ -75,12 +79,42 @@ class BoxInspectionSystem:
                 print(f"   - {obj_name}: {count}")
         else:
             print("\n2. No expected objects specified - will report all detections")
-        
+
+
+        #detect raspberry pi
+        print("\n3. Detecting Raspberry Pi...")
+        if self.detect_rpi():
+            print("Raspberry Pi detected.")
+            try:
+                from sense_hat import SenseHat
+                self.sense = SenseHat()
+                self.sense.clear((255, 0, 0))  # Red light to indicate startup
+
+            except Exception as e:
+                print(f"Error importing SenseHat: {e}")
+                self.israspi=False
+
+
         print("\n✓ System initialized successfully")
         print("=" * 60)
+        
         return True
-    
+        
 
+
+
+    def detect_rpi(self):
+        syst=platform.uname()
+        print("Operating System:", syst)
+
+        if "rpi" in syst.release.lower() or "raspberrypi" in syst.node.lower():
+            self.israspi=True
+            return True
+        
+        print("Not a Raspberry Pi.")
+        self.israspi=False
+        return False
+        
 
     def on_box_complete(self):
         """
@@ -90,13 +124,21 @@ class BoxInspectionSystem:
         print("\n" + "=" * 60)
         print("✓✓✓ BOX COMPLETE - ALL OBJECTS DETECTED ✓✓✓")
         print("=" * 60)
-        # Todo: raspberry pi GPIO signal green lamp on
-            # green lamp on for 30 seconds before checking again
-            # sets again to false after 30 seconds
-            #implement logic that keeps the green lamp on and does not turn it off if box is still complete
+       
 
 
-        # Example: Log with timestamp
+        # if raspberry pi detected use sense hat as indicator
+        if self.israspi: # if raspberry pi detected use sense hat as indicator
+            try:
+                self.sense.clear((0, 255, 0))  # Green light
+                time.sleep(30)  # Keep green light on for 30 seconds
+                
+
+            except Exception as e:
+                print(f"Error controlling SenseHat: {e}")
+        
+            
+
         timestamp = time.strftime("%Y-%m-%d %H:%M:%S")
         print(f"Completion detected at: {timestamp}")
         
@@ -141,12 +183,21 @@ class BoxInspectionSystem:
         # new - Detect objects in the frame
         detections = self.object_detector.detect_objects(frame, verbose=False)
         result['objects_detected'] = detections
+
+        if self.israspi and len(result)>0:
+            try:
+                self.sense.clear((255, 255, 0))  # yellow if some object detected
+
+            except Exception as e:
+                print(f"Error controlling SenseHat: {e}")
+
         
         # new - Verify if expected objects are present
         if self.expected_objects:
             is_complete, missing, extra = self.object_detector.check_expected_objects(
                 detections, self.expected_objects, mode=self.verification_mode
             )
+
             result['is_complete'] = is_complete
             result['missing_objects'] = missing
             result['extra_objects'] = extra
