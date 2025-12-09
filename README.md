@@ -94,7 +94,7 @@ YOLO_MODEL = model_dir / 'yolov8n.pt'  # Nano (fastest)
 
 ```
 ┌─────────────┐
-│   Camera    │ → Takes picture (IDS or Webcam)
+│   Camera    │ → Takes picture
 └──────┬──────┘
        ↓
 ┌─────────────┐
@@ -141,4 +141,20 @@ Before running `main.py`, ensure:
 - Robust error handling throughout
 - Flexible fallback system (IDS → OpenCV)
 
-**Overall**: Production ready.
+**Potential Issues**: ⚠️ Minor
+- Box color threshold may need calibration
+- YOLO model must match expected classes
+- Camera position matters
+
+**Overall**: 9/10 - Production ready with minor setup
+
+---
+
+## 🚀 Next Steps
+
+1. Run all test scripts to verify each component
+2. Calibrate box colors if needed
+3. Verify YOLO model classes match your objects
+4. Adjust thresholds for your environment
+5. Run `main.py` and monitor results
+6. Add custom callbacks in `on_box_complete()` for your workflow
