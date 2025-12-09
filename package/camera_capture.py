@@ -80,12 +80,15 @@ class CameraCapture:
                         self.remote_nodemap = None
 
                     # Try loading saved settings if the file exists
-                    if self.remote_nodemap is not None and os.path.exists(CONFIG_FILE):
+                    if self.remote_nodemap is not None and CONFIG_FILE.exists():
                         try:
-                            self.remote_nodemap.LoadFromFile(CONFIG_FILE)
-                            print("INFO: Loaded camera settings from", CONFIG_FILE)
-                        except Exception:
-                            print("WARNING: Could not load camera settings from", CONFIG_FILE)
+                            # Convert Path to string for IDS SDK
+                            config_str = str(CONFIG_FILE)
+                            self.remote_nodemap.LoadFromFile(config_str)
+                            print(f"INFO: Loaded camera settings from {CONFIG_FILE}")
+                        except Exception as e:
+                            print(f"WARNING: Could not load camera settings from {CONFIG_FILE}")
+                            print(f"         Error: {e}")
                             pass
 
                     # Open data stream and allocate buffers

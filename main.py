@@ -124,19 +124,24 @@ class BoxInspectionSystem:
         return False
     
 
-    def check_rpi_headless(self):
+    def check_headless(self):
         """
         Check if running on Raspberry Pi in headless mode (no GUI).
         
         Returns:
             bool: True if running on Raspberry Pi without GUI
         """
-        
-        # Check if DISPLAY environment variable is set (indicates GUI available)
-        display = os.environ.get('DISPLAY')
-        
-        # Return False if GUI available (DISPLAY is set), True if headless (no DISPLAY)
-        return display is None or display == ''
+        "does not work"
+        if self.israspi:
+            display = os.environ.get('DISPLAY')
+            if display is None or display == '':
+                print("Raspberry Pi running in headless mode (no GUI detected).")
+                return True
+            else:
+                print("Raspberry Pi with GUI detected.")
+                return False
+        pass
+    
 
 
     def on_box_complete(self):
@@ -365,7 +370,7 @@ def main():
     
 
     # Determine if running in headless mode on Raspberry Pi
-    display_window = not system.check_rpi_headless()
+    display_window = not system.israspi
 
     # Run the system
     system.run(display_window)
