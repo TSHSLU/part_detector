@@ -5,10 +5,13 @@ Continuously scans for objects in a box placed under a camera and verifies compl
 
 import cv2
 import time
-from camera_capture import CameraCapture
-from object_detector import ObjectDetector
 from pathlib import Path
 import platform
+import os
+import time
+from package.camera_capture import CameraCapture
+from package.object_detector import ObjectDetector
+
 
 
 class BoxInspectionSystem:
@@ -16,7 +19,7 @@ class BoxInspectionSystem:
     Main system that orchestrates camera capture, box detection, and object verification.
     """
     
-    def __init__(self, yolo_model_path='models/modelv2.0.pt', expected_objects=None):
+    def __init__(self, yolo_model_path='models/yolo11n.pt', expected_objects=None):
         """
         Initialize the box inspection system.
         
@@ -34,9 +37,10 @@ class BoxInspectionSystem:
         )
         
         # Configuration
-        self.expected_objects = expected_objects or {}  # new
+        self.expected_objects = expected_objects
         self.verification_mode = 'minimum'  # 'exact', 'minimum', or 'any' # new
         self.required_consecutive_detections = 3  # Number of consecutive complete detections to confirm box completeness
+
         
         # State tracking
         self.is_running = False
@@ -83,16 +87,8 @@ class BoxInspectionSystem:
 
         #detect raspberry pi
         print("\n3. Detecting Raspberry Pi...")
-        if self.detect_rpi():
-            print("Raspberry Pi detected.")
-            try:
-                from sense_hat import SenseHat
-                self.sense = SenseHat()
-                self.sense.clear((255, 0, 0))  # Red light to indicate startup
-
-            except Exception as e:
-                print(f"Error importing SenseHat: {e}")
-                self.israspi=False
+        self.detect_rpi()
+            
 
 
         print("\n✓ System initialized successfully")
@@ -109,12 +105,39 @@ class BoxInspectionSystem:
 
         if "rpi" in syst.release.lower() or "raspberrypi" in syst.node.lower():
             self.israspi=True
+            print("Raspberry Pi detected.")
+            try:
+                from sense_hat import SenseHat
+
+                self.sense = SenseHat()
+                self.sense.show_message("Starting...")
+                self.sense.clear((255, 0, 0))  # Red light to indicate startup
+
+            except Exception as e:
+                print(f"Error importing SenseHat: {e}")
+                self.israspi=False
+
             return True
         
         print("Not a Raspberry Pi.")
         self.israspi=False
         return False
+    
+
+    def check_rpi_headless(self):
+        """
+        Check if running on Raspberry Pi in headless mode (no GUI).
         
+        Returns:
+            bool: True if running on Raspberry Pi without GUI
+        """
+        
+        # Check if DISPLAY environment variable is set (indicates GUI available)
+        display = os.environ.get('DISPLAY')
+        
+        # Return False if GUI available (DISPLAY is set), True if headless (no DISPLAY)
+        return display is None or display == ''
+
 
     def on_box_complete(self):
         """
@@ -131,8 +154,9 @@ class BoxInspectionSystem:
         if self.israspi: # if raspberry pi detected use sense hat as indicator
             try:
                 self.sense.clear((0, 255, 0))  # Green light
-                time.sleep(30)  # Keep green light on for 30 seconds
-                
+                time.sleep(3)  # Keep green light on for 3 seconds
+                self.sense.show_message("Box Complete!", text_colour=(0, 255, 0), scroll_speed=0.3)
+                self.sense.clear((0, 255, 0))  # Green light
 
             except Exception as e:
                 print(f"Error controlling SenseHat: {e}")
@@ -143,7 +167,7 @@ class BoxInspectionSystem:
         print(f"Completion detected at: {timestamp}")
         
 
-    def on_box_incomplete(self, missing_objects, extra_objects=None):
+    def on_box_incomplete(self):
         """
         Callback function triggered when box is incomplete or has incorrect objects.
         
@@ -151,7 +175,8 @@ class BoxInspectionSystem:
             missing_objects (dict): Objects that are missing
             extra_objects (dict): Objects that are extra (only in 'exact' mode)
         """
-        pass
+        if self.israspi:
+            self.sense.clear((255, 255, 0))  # Yellow light
     
 
 
@@ -268,14 +293,17 @@ class BoxInspectionSystem:
                             self.consecutive_complete_detections = 0
                             self.box_complete = False
                         
-                        self.on_box_incomplete(
-                            result['missing_objects'],
-                            result['extra_objects']
-                        )
+                        self.on_box_incomplete()
                 else:
                     # No items detected - reset state
                     self.consecutive_complete_detections = 0
                     self.box_complete = False
+                    if self.israspi:
+                        try:
+                            self.sense.clear((255, 0, 0))  # Red light if no object detected
+
+                        except Exception as e:
+                            print(f"Error controlling SenseHat: {e}")
                 
                 # Display visualization if enabled
                 if display_window and result['visualization'] is not None:
@@ -288,7 +316,7 @@ class BoxInspectionSystem:
                         break
                 
                 # Rate limiting
-                time.sleep(0.05)  # ~20 FPS
+                time.sleep(0.01)  
                 
         except KeyboardInterrupt:
             print("\n\nShutdown requested by user")
@@ -312,7 +340,7 @@ def main():
     """
     # Configuration
     model_dir= Path(__file__).parent/'models'
-    YOLO_MODEL = model_dir / 'firstmodelv1.pt'  #insert  model here in path ./models/
+    YOLO_MODEL = model_dir / 'modelv2.0.pt'  #insert  model here in path ./models/
     
     # Define expected objects in the box
     EXPECTED_OBJECTS = {
@@ -335,8 +363,12 @@ def main():
     # system parameters
     system.required_consecutive_detections = 3
     
+
+    # Determine if running in headless mode on Raspberry Pi
+    display_window = not system.check_rpi_headless()
+
     # Run the system
-    system.run(display_window=True)
+    system.run(display_window)
 
 
 if __name__ == "__main__":

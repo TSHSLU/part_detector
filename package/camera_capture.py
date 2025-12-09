@@ -6,7 +6,10 @@ Handles camera initialization, image capture, and camera cleanup.
 import numpy as np
 import cv2
 import os
-import time
+from pathlib import Path
+
+
+
 
 # Try importing IDS uEye bindings. If unavailable, we'll fallback to OpenCV.
 try:
@@ -18,7 +21,9 @@ except Exception:
     IDS_AVAILABLE = False
 
 # Default camera settings file (optional)
-CONFIG_FILE = os.path.join(os.path.dirname(__file__), "camsettings.cset")
+parent_path=Path(__file__).parent.parent
+CONFIG_FILE=parent_path / "config" / "camsettings.cset"
+
 
 
 class CameraCapture:
@@ -80,7 +85,7 @@ class CameraCapture:
                             self.remote_nodemap.LoadFromFile(CONFIG_FILE)
                             print("INFO: Loaded camera settings from", CONFIG_FILE)
                         except Exception:
-                            # ignore failures and continue with defaults
+                            print("WARNING: Could not load camera settings from", CONFIG_FILE)
                             pass
 
                     # Open data stream and allocate buffers
@@ -242,12 +247,9 @@ class CameraCapture:
         Returns:
             dict: Dictionary containing camera information
             
-        TODO: Implement camera info retrieval
-        - Get camera model/name
-        - Get current resolution
-        - Get current exposure, gain, etc.
-        - Return as dictionary
+        
         """
+
         info = {
             "model": "Unknown",
             "resolution": None,
