@@ -3,43 +3,42 @@ from pathlib import Path
 import torch
 
 # Load a pretrained YOLO11n model
-model = YOLO("yolo11n.pt")
-path = Path(__file__).parent / "datasetv2" / "data.yaml"
+model = YOLO("yolo11s.pt")
+path = Path(__file__).parent / "datasetv4" / "data.yaml"
 
 
 def main():
 
     def train_model(modelname):
-        first_model = model.train(
+        results = model.train(
 
-                #hyperparameters
-                data=path,  # Path to dataset configuration file
-                epochs=200,  # Number of training epochs
-                imgsz=640,  # Image size for training
-                batch=-1,
-                patience=30,
-                #lr0=0.01, #initial learning rate
-                #lrf=0.01, #final learningrate
-                name=modelname,  # Name of the training experiment
-                optimizer="auto",
-                plots=True,
+            # Hyperparameters
+            data=path,  # Path to dataset configuration file
+            epochs=250,  # Number of training epochs
+            imgsz=640,  # Image size for training (pixels)
+            batch=-1,  # Batch size (-1 for auto-batch)
+            patience=50,  # Early stopping patience (epochs without improvement)
+            #lr0=0.01, # Initial learning rate
+            #lrf=0.01, # Final learning rate (as fraction of lr0)
+            name=modelname,  # Name of the training experiment
+            optimizer="auto",  # Optimizer selection (auto/SGD/Adam/AdamW)
+            plots=True,  # Generate training plots
 
-                #augentation
-                hsv_h=0.015,
-                hsv_s=0.7,
-                hsv_v=0.6,
-                translate=0.1,
-                scale=0.3,
-                fliplr=0.5,
-                flipud=0.5,
-                mosaic=0.9,
-                degrees=180,
-                
+            augment=True,
+            # Augmentation
+            hsv_h=0.015,  # HSV-Hue augmentation (fraction)
+            hsv_s=0.4,  # HSV-Saturation augmentation (fraction)
+            hsv_v=0.4,  # Brightness-Value augmentation (fraction)
+            translate=0.1,  # Image translation (+/- fraction)
+            scale=0.5,  # Image scale (+/- gain)
+            fliplr=0.5,  # Horizontal flip probability
+            flipud=0.5,  # Vertical flip probability
+            mosaic=0.5,  # Mosaic augmentation probability
+            degrees=180,  # Rotation range (+/- degrees)
 
             )
 
-    # Fine tune the pretrained model on custom dataset
-
+   
     #names model
     model_name=input("Name your custom trained model: ")
     if model_name=="":

@@ -5,6 +5,7 @@
 #folders to ignore
 __pychecker__/
 .vscode/
+test_files/
 # ignore trainer/datasetvN directories (N = any number)
 trainer/datasetv[0-9]*/
 trainer/runs/
@@ -18,6 +19,11 @@ ueye.py
 __pycache__/box_detector.cpython-313.pyc
 __pycache__/object_detector.cpython-313.pyc
 __pycache__/camera_capture.cpython-313.pyc
+yolo11n.pt
+yolo11s.pt
+yolo11m.pt
+yolo11l.pt
+yolo11x.pt
 
 
 # files to ignore based on file extensions

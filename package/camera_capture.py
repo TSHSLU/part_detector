@@ -55,12 +55,6 @@ class CameraCapture:
         
         Returns:
             bool: True if initialization was successful, False otherwise
-            
-        TODO: Implement camera initialization logic
-        - Connect to the camera
-        - Load camera settings (e.g., from camsettings.cset)
-        - Configure camera parameters (exposure, gain, etc.)
-        - Set up any required buffers or resources
         """
         # Try to initialize IDS camera first (if bindings are available)
         if IDS_AVAILABLE:
@@ -183,11 +177,6 @@ class CameraCapture:
         Returns:
             numpy.ndarray: Captured image as BGR numpy array, or None if capture failed
             
-        TODO: Implement frame capture logic
-        - Grab frame from camera
-        - Convert to appropriate format (BGR)
-        - Handle any camera-specific processing
-        - Return the image as numpy array
         """
         if not self.is_initialized:
             return None
@@ -297,11 +286,7 @@ class CameraCapture:
     def release(self):
         """
         Release camera resources and cleanup.
-        
-        TODO: Implement cleanup logic
-        - Stop camera capture
-        - Release camera resources
-        - Clean up any buffers or handles
+    
         """
         # IDS cleanup
         if self.use_ids and self.ids_data_stream is not None:
