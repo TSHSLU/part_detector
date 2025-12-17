@@ -12,13 +12,12 @@ trainer/runs/
 trainer/results/
 runs/
 results/
+__pycache__/
 
 #specific files
 launch.json
 ueye.py
-__pycache__/box_detector.cpython-313.pyc
-__pycache__/object_detector.cpython-313.pyc
-__pycache__/camera_capture.cpython-313.pyc
+
 yolo11n.pt
 yolo11s.pt
 yolo11m.pt
