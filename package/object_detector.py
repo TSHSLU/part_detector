@@ -13,7 +13,7 @@ class ObjectDetector:
     Detects objects in images using YOLO and verifies if all expected objects are present.
     """
     
-    def __init__(self, model_path='yolov8n.pt', confidence_threshold=0.5, iou_threshold=0.45, min_box_area=100):
+    def __init__(self, model_path='yolo11n.pt', confidence_threshold=0.5, iou_threshold=0.45, min_box_area=100):
         """
         Initialize the YOLO object detector.
         
@@ -39,7 +39,7 @@ class ObjectDetector:
         """
         try:
             print(f"Loading YOLO model: {self.model_path}")
-            self.model = YOLO(self.model_path)
+            self.model = YOLO(self.model_path, task='detect')
             # Get class names from the model
             self.class_names = self.model.names
             print(f"Model loaded successfully. Available classes: {len(self.class_names)}")

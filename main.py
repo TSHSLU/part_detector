@@ -97,6 +97,21 @@ class BoxInspectionSystem:
         return True
         
 
+    #functions to control sense hat lights
+    def sense_red(self):
+        """Set Sense HAT to red (incomplete/no objects)."""
+        if self.israspi and hasattr(self, 'sense'):
+            self.sense.clear((255, 0, 0))
+    
+    def sense_yellow(self):
+        """Set Sense HAT to yellow (some objects detected)."""
+        if self.israspi and hasattr(self, 'sense'):
+            self.sense.clear((255, 255, 0))
+    
+    def sense_green(self):
+        """Set Sense HAT to green (box complete)."""
+        if self.israspi and hasattr(self, 'sense'):
+            self.sense.clear((0, 255, 0))
 
 
     def detect_rpi(self):
@@ -111,13 +126,7 @@ class BoxInspectionSystem:
 
                 self.sense = SenseHat()
                 self.sense.show_message("Start")
-                def sense_red():
-                    self.sense.clear((255, 0, 0))  # Red light to indicate startup or no objects
-                def sense_yellow():
-                    self.sense.clear((255, 255, 0))  # yellow light to indicate some objects detected
-                def sense_green():
-                    self.sense.clear((0, 255, 0))  # Green light to indicate complete box
-                sense_red()
+                self.sense_red()
 
             except Exception as e:
                 print(f"Error importing SenseHat: {e}")
@@ -129,6 +138,8 @@ class BoxInspectionSystem:
         self.israspi=False
         return False
     
+    
+
 
     def check_headless(self):
         """
@@ -164,11 +175,11 @@ class BoxInspectionSystem:
         # if raspberry pi detected use sense hat as indicator
         if self.israspi: # if raspberry pi detected use sense hat as indicator
             try:
-                self.sense.clear((0, 255, 0))  # Green light
+                self.sense_green()  # Green light
                 time.sleep(3)  # Keep green light on for 3 seconds
                 self.sense.show_message("Complete!", text_colour=(0, 255, 0), scroll_speed=0.3)
-                self.sense.clear((0, 255, 0))  # Green light
-
+                self.sense_green()  # Keep green light on
+                time.sleep(10)  # Keep green light on for 10 seconds
             except Exception as e:
                 print(f"Error controlling SenseHat: {e}")
         
@@ -237,15 +248,14 @@ class BoxInspectionSystem:
         if self.israspi:
             try:
                 if result['is_complete']:
-                    self.sense.clear((0, 255, 0))  # Green light
+                    self.sense_green()  # Green light
                 elif len(detections) > 0:
-                    self.sense.clear((255, 255, 0))  # Yellow light
+                    self.sense_yellow()  # Yellow light
                 else:
-                    self.sense.clear((255, 0, 0))  # Red light
-
+                    self.sense_red()  # Red light
             except Exception as e:
                 print(f"Error controlling SenseHat: {e}")
-                
+
         # new - Create visualization if requested
         if visualize:
             vis_frame = self.object_detector.visualize_detections(frame, detections)
@@ -282,7 +292,7 @@ class BoxInspectionSystem:
         # starts program
         self.is_running = True
         print("\nStarting continuous scanning...")
-        print("Press 'q' to quit\n")
+        print("Press 'q' or 'Ctrl+C' to quit\n")
         
         # Create resizable window if display is enabled
         if display_window:
@@ -383,7 +393,7 @@ def main():
 
     # Determine if running in headless mode on Raspberry Pi
     display_window = not system.israspi
-    display_window=True
+    display_window=False
 
     # Run the system
     system.run(display_window)
