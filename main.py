@@ -19,7 +19,7 @@ class BoxInspectionSystem:
     Main system that orchestrates camera capture, box detection, and object verification.
     """
     
-    def __init__(self, yolo_model_path='models/yolo11n.pt', expected_objects=None):
+    def __init__(self, yolo_model_path='models/yolo11n.pt', expected_objects=None,conftresh=0.6):
         """
         Initialize the box inspection system.
         
@@ -33,7 +33,7 @@ class BoxInspectionSystem:
         self.camera = CameraCapture()
         self.object_detector = ObjectDetector(
             model_path=yolo_model_path,
-            confidence_threshold=0.7,  # Increased threshold to reduce false positives
+            confidence_threshold=conftresh,  
         )
         
         # Configuration
@@ -386,7 +386,8 @@ def main():
     # Create and run the inspection system
     system = BoxInspectionSystem(
         yolo_model_path=YOLO_MODEL,
-        expected_objects=EXPECTED_OBJECTS
+        expected_objects=EXPECTED_OBJECTS,
+        conftresh=0.2
     )
     
     # system parameters
@@ -395,7 +396,7 @@ def main():
 
     # Determine if running in headless mode on Raspberry Pi
     display_window = not system.israspi
-    display_window=False
+    display_window=True
 
     # Run the system
     system.run(display_window)

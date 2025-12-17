@@ -196,7 +196,7 @@ class CameraCapture:
                 arr = arr.astype(np.float32)
                 arr[:, :, 0] *= 1  # Boost red channel
                 arr[:, :, 1] *= 1  # Boost green channel
-                arr[:, :, 2] *= 4  # Boost blue channel
+                arr[:, :, 2] *= 4.2  # Boost blue channel
                 arr = np.clip(arr, 0, 255)
                 arr = arr.astype(np.uint8)
                   
