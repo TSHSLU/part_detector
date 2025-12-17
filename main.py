@@ -110,8 +110,14 @@ class BoxInspectionSystem:
                 from sense_hat import SenseHat
 
                 self.sense = SenseHat()
-                self.sense.show_message("Starting...")
-                self.sense.clear((255, 0, 0))  # Red light to indicate startup
+                self.sense.show_message("Start")
+                def sense_red():
+                    self.sense.clear((255, 0, 0))  # Red light to indicate startup or no objects
+                def sense_yellow():
+                    self.sense.clear((255, 255, 0))  # yellow light to indicate some objects detected
+                def sense_green():
+                    self.sense.clear((0, 255, 0))  # Green light to indicate complete box
+                sense_red()
 
             except Exception as e:
                 print(f"Error importing SenseHat: {e}")
@@ -147,7 +153,7 @@ class BoxInspectionSystem:
     def on_box_complete(self):
         """
         Callback function triggered when all expected objects are detected in the box.
-        Override this method or modify it to trigger custom actions (e.g., send signal, save data, etc.)
+        modify it to trigger custom actions
         """
         print("\n" + "=" * 60)
         print("✓✓✓ BOX COMPLETE - ALL OBJECTS DETECTED ✓✓✓")
@@ -160,7 +166,7 @@ class BoxInspectionSystem:
             try:
                 self.sense.clear((0, 255, 0))  # Green light
                 time.sleep(3)  # Keep green light on for 3 seconds
-                self.sense.show_message("Box Complete!", text_colour=(0, 255, 0), scroll_speed=0.3)
+                self.sense.show_message("Complete!", text_colour=(0, 255, 0), scroll_speed=0.3)
                 self.sense.clear((0, 255, 0))  # Green light
 
             except Exception as e:
@@ -180,8 +186,7 @@ class BoxInspectionSystem:
             missing_objects (dict): Objects that are missing
             extra_objects (dict): Objects that are extra (only in 'exact' mode)
         """
-        if self.israspi:
-            self.sense.clear((255, 255, 0))  # Yellow light
+        
     
 
 
@@ -214,13 +219,6 @@ class BoxInspectionSystem:
         detections = self.object_detector.detect_objects(frame, verbose=False)
         result['objects_detected'] = detections
 
-        if self.israspi and len(result)>0:
-            try:
-                self.sense.clear((255, 255, 0))  # yellow if some object detected
-
-            except Exception as e:
-                print(f"Error controlling SenseHat: {e}")
-
         
         # new - Verify if expected objects are present
         if self.expected_objects:
@@ -235,6 +233,19 @@ class BoxInspectionSystem:
             # new - If no expected objects specified, consider it "complete" if any objects detected
             result['is_complete'] = len(detections) > 0
         
+        # check fill state of box and control sense hat lights
+        if self.israspi:
+            try:
+                if result['is_complete']:
+                    self.sense.clear((0, 255, 0))  # Green light
+                elif len(detections) > 0:
+                    self.sense.clear((255, 255, 0))  # Yellow light
+                else:
+                    self.sense.clear((255, 0, 0))  # Red light
+
+            except Exception as e:
+                print(f"Error controlling SenseHat: {e}")
+                
         # new - Create visualization if requested
         if visualize:
             vis_frame = self.object_detector.visualize_detections(frame, detections)
@@ -292,6 +303,7 @@ class BoxInspectionSystem:
                             and not self.box_complete):
                             self.box_complete = True
                             self.on_box_complete()
+                        
                     else:
                         # Box incomplete - reset counter
                         if self.consecutive_complete_detections > 0:
@@ -345,7 +357,7 @@ def main():
     """
     # Configuration
     model_dir= Path(__file__).parent/'models'
-    YOLO_MODEL = model_dir / 'modelv2.0.pt'  #insert  model here in path ./models/
+    YOLO_MODEL = model_dir / 'modelv5_ncnn_model'  #insert  model here in path ./models/
     
     # Define expected objects in the box
     EXPECTED_OBJECTS = {
@@ -371,6 +383,7 @@ def main():
 
     # Determine if running in headless mode on Raspberry Pi
     display_window = not system.israspi
+    display_window=True
 
     # Run the system
     system.run(display_window)

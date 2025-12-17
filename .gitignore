@@ -6,13 +6,15 @@
 __pychecker__/
 .vscode/
 test_files/
+*__pycache__/
+**/__pycache__/
 # ignore trainer/datasetvN directories (N = any number)
 trainer/datasetv[0-9]*/
 trainer/runs/
 trainer/results/
 runs/
 results/
-__pycache__/
+
 
 #specific files
 launch.json
@@ -31,6 +33,7 @@ yolo11x.pt
 *.png
 *.gif
 *.bmp
+
 *.svg
 *.ico
 *.lock
