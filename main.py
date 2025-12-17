@@ -299,6 +299,8 @@ class BoxInspectionSystem:
             cv2.namedWindow('Box Inspection System', cv2.WINDOW_NORMAL)
         
         try:
+            print("System is running...")
+            print("=" * 60)
             while self.is_running:
                 # Process frame
                 result = self.process_single_frame(visualize=display_window)
